@@ -1,6 +1,6 @@
 {
   "name": "obsidian-live-transcriber",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Obsidian plugin for live audio transcription with speaker diarization (MLX + MPS).",
   "main": "main.js",
   "scripts": {
