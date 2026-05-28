@@ -1,0 +1,6 @@
+mlx-whisper
+pyannote.audio
+torch
+silero-vad
+numpy
+soundfile

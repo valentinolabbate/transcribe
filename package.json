@@ -1,0 +1,26 @@
+{
+  "name": "obsidian-live-transcriber",
+  "version": "0.1.0",
+  "description": "Obsidian plugin for live audio transcription with speaker diarization (MLX + MPS).",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node scripts/embed-backend.mjs && node esbuild.config.mjs",
+    "build": "node scripts/embed-backend.mjs && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "version": "node version-bump.mjs && git add manifest.json versions.json"
+  },
+  "keywords": [
+    "obsidian",
+    "transcription",
+    "whisper",
+    "diarization"
+  ],
+  "author": "Valentino Labbate",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.20.0",
+    "obsidian": "^1.4.11",
+    "typescript": "^5.4.0"
+  }
+}

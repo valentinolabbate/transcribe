@@ -1,0 +1,10 @@
+{
+  "id": "live-transcriber",
+  "name": "Live Transcriber",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Live audio transcription with speaker diarization, optimized for Apple Silicon (MLX + MPS). Outputs live Markdown to your vault.",
+  "author": "Valentino Labbate",
+  "authorUrl": "https://github.com/valentinolabbate",
+  "isDesktopOnly": true
+}

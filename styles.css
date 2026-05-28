@@ -1,0 +1,26 @@
+/* Live Transcriber styles */
+
+.live-transcriber-status-recording {
+  color: var(--text-error);
+  font-weight: var(--font-semibold);
+}
+
+.live-transcriber-status-idle {
+  color: var(--text-muted);
+}
+
+/* Pulsing mic/stop icon while recording. */
+.live-transcriber-ribbon-recording {
+  color: var(--text-error);
+  animation: live-transcriber-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes live-transcriber-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
