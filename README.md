@@ -27,10 +27,26 @@ virtual environment lives next to it in `venv/`.
 - macOS, Apple Silicon
 - **Python 3.10+** installed and on your PATH (or set the path in settings)
 - A **HuggingFace token** with accepted terms for
-  [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1)
-  (and the `segmentation-3.0` model it pulls) — required only for speaker labels
+  [pyannote/embedding](https://huggingface.co/pyannote/embedding) — required only
+  for speaker labels
 - For **system audio** capture: a virtual audio device such as
   [BlackHole](https://github.com/ExistentialAudio/BlackHole)
+
+### Capturing system audio (e.g. a Teams call)
+
+macOS apps can't record the system output directly. Route it through a virtual
+input device:
+
+1. Install [BlackHole 2ch](https://github.com/ExistentialAudio/BlackHole)
+   (`brew install blackhole-2ch`).
+2. In **Audio MIDI Setup**, create a **Multi-Output Device** combining your
+   speakers/headphones **and** BlackHole — so you still hear the call while it's
+   also sent to BlackHole. Set it as the system output (or the app's output).
+3. In the plugin settings, set **Audio input device** to **BlackHole 2ch**.
+4. Start transcription — it now captures whatever is playing.
+
+To capture the call **and** your own mic, create an **Aggregate Device** of
+BlackHole + your microphone and select that instead.
 
 ## Installation (BRAT)
 
@@ -55,8 +71,8 @@ virtual environment lives next to it in `venv/`.
 | Whisper model | mlx-whisper model id (default `mlx-community/whisper-large-v3-turbo`) |
 | Language | ISO code (e.g. `de`, `en`); empty = auto-detect |
 | Chunk length | Seconds of audio buffered per chunk |
-| HuggingFace token | Enables speaker diarization |
-| Audio source | Microphone or system audio |
+| HuggingFace token | Enables speaker labels (voice-embedding identification) |
+| Audio input device | Microphone, or a virtual device like BlackHole for system audio |
 | Output folder | Vault-relative folder for transcripts |
 | Python path | Explicit interpreter, or empty to auto-detect |
 

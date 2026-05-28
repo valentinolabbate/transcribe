@@ -1,6 +1,5 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type LiveTranscriberPlugin from './main';
-import type { AudioSource } from './audio-recorder';
 
 export interface TranscriberSettings {
 	pythonPath: string; // '' = auto-detect
@@ -8,7 +7,8 @@ export interface TranscriberSettings {
 	whisperModel: string;
 	language: string; // ISO code, e.g. 'de'; '' = auto-detect
 	outputFolder: string;
-	audioSource: AudioSource;
+	inputDeviceId: string; // '' = system default input
+	inputDeviceLabel: string; // human-readable label, for the transcript header
 	chunkSeconds: number;
 }
 
@@ -18,12 +18,17 @@ export const DEFAULT_SETTINGS: TranscriberSettings = {
 	whisperModel: 'mlx-community/whisper-large-v3-turbo',
 	language: 'de',
 	outputFolder: 'Transcripts',
-	audioSource: 'microphone',
+	inputDeviceId: '',
+	inputDeviceLabel: '',
 	chunkSeconds: 8,
 };
 
-const PYANNOTE_TERMS_URL =
-	'https://huggingface.co/pyannote/speaker-diarization-3.1';
+const PYANNOTE_EMBED_URL = 'https://huggingface.co/pyannote/embedding';
+
+async function listAudioInputs(): Promise<MediaDeviceInfo[]> {
+	const devices = await navigator.mediaDevices.enumerateDevices();
+	return devices.filter((d) => d.kind === 'audioinput');
+}
 
 export class LiveTranscriberSettingTab extends PluginSettingTab {
 	private readonly plugin: LiveTranscriberPlugin;
@@ -90,11 +95,11 @@ export class LiveTranscriberSettingTab extends PluginSettingTab {
 						'Required for speaker labels. Accept the model terms at ',
 					);
 					frag.createEl('a', {
-						text: 'pyannote/speaker-diarization-3.1',
-						href: PYANNOTE_TERMS_URL,
+						text: 'pyannote/embedding',
+						href: PYANNOTE_EMBED_URL,
 					});
 					frag.appendText(
-						' (and the segmentation-3.0 model it pulls). Without a token, transcription still works but without speaker names.',
+						'. Without a token, transcription still works but without speaker names.',
 					);
 				}),
 			)
@@ -111,27 +116,50 @@ export class LiveTranscriberSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName('Audio & output').setHeading();
 
-		new Setting(containerEl)
-			.setName('Audio source')
+		const deviceSetting = new Setting(containerEl)
+			.setName('Audio input device')
 			.setDesc(
-				'Microphone, or system audio (needs BlackHole or similar on macOS).',
-			)
-			.addDropdown((d) =>
-				d
-					.addOption('microphone', 'Microphone')
-					.addOption('system', 'System audio')
-					.setValue(s.audioSource)
-					.onChange(async (v) => {
-						s.audioSource = v as AudioSource;
-						await this.plugin.saveSettings();
-						if (v === 'system') {
-							new Notice(
-								'System audio needs a virtual device like BlackHole. ' +
-									'See the plugin README for setup.',
-							);
-						}
-					}),
+				'Your microphone, or a virtual device like BlackHole to capture ' +
+					'system audio (e.g. a Teams call). See the README for BlackHole setup.',
 			);
+		// Dropdown is populated asynchronously (device labels need permission).
+		deviceSetting.addDropdown((d) => {
+			d.addOption('', 'Default input');
+			d.setValue(s.inputDeviceId);
+			void listAudioInputs().then((inputs) => {
+				for (const dev of inputs) {
+					if (!dev.deviceId || dev.deviceId === 'default') continue;
+					d.addOption(
+						dev.deviceId,
+						dev.label || `Input ${dev.deviceId.slice(0, 6)}…`,
+					);
+				}
+				d.setValue(s.inputDeviceId);
+			});
+			d.onChange(async (v) => {
+				s.inputDeviceId = v;
+				s.inputDeviceLabel = v
+					? d.selectEl.selectedOptions[0]?.text ?? ''
+					: '';
+				await this.plugin.saveSettings();
+			});
+		});
+		deviceSetting.addExtraButton((b) =>
+			b
+				.setIcon('refresh-cw')
+				.setTooltip('Grant audio access & refresh device list')
+				.onClick(async () => {
+					try {
+						const stream = await navigator.mediaDevices.getUserMedia({
+							audio: true,
+						});
+						stream.getTracks().forEach((t) => t.stop());
+						this.display(); // re-render with now-labeled devices
+					} catch (e) {
+						new Notice(`Live Transcriber: audio access denied (${String(e)})`);
+					}
+				}),
+		);
 
 		new Setting(containerEl)
 			.setName('Output folder')

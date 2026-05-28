@@ -147,7 +147,7 @@ export default class LiveTranscriberPlugin extends Plugin {
 		const session = new SessionWriter({
 			app: this.app,
 			outputFolder: this.settings.outputFolder,
-			audioSource: this.settings.audioSource,
+			audioSource: this.settings.inputDeviceLabel || 'default input',
 			model: this.settings.whisperModel,
 		});
 		try {
@@ -161,7 +161,7 @@ export default class LiveTranscriberPlugin extends Plugin {
 		}
 
 		const recorder = new AudioRecorder({
-			source: this.settings.audioSource,
+			deviceId: this.settings.inputDeviceId,
 			sampleRate: SAMPLE_RATE,
 			chunkSeconds: this.settings.chunkSeconds,
 			onChunk: (b64, offsetS) => this.protocol?.sendChunk(b64, offsetS),

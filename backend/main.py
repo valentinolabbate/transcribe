@@ -31,7 +31,7 @@ _worker: "threading.Thread | None" = None
 
 vad = None
 transcriber = None
-diarizer = None
+identifier = None  # SpeakerIdentifier, or None when diarization is off
 aligner = None
 
 
@@ -46,7 +46,7 @@ def log(*args) -> None:
 
 
 def handle_config(msg: dict) -> None:
-    global vad, transcriber, diarizer, aligner, _worker
+    global vad, transcriber, identifier, aligner, _worker
 
     sample_rate = int(msg.get("sample_rate", 16000))
     model = msg.get("model") or "mlx-community/whisper-large-v3-turbo"
@@ -66,17 +66,18 @@ def handle_config(msg: dict) -> None:
     aligner = Aligner()
 
     if hf_token:
-        send({"type": "status", "message": "Loading speaker diarization..."})
+        send({"type": "status", "message": "Loading speaker identification..."})
         try:
-            from diarizer import Diarizer
-            diarizer = Diarizer(hf_token, sample_rate)
+            from speaker_identifier import SpeakerIdentifier
+            identifier = SpeakerIdentifier(hf_token, sample_rate)
+            send({"type": "status", "message": "Speaker identification: ON"})
         except Exception as e:
-            diarizer = None
-            log("diarization load failed:", traceback.format_exc())
-            send({"type": "status", "message": f"Diarization disabled: {e}"})
+            identifier = None
+            log("speaker identification load failed:", traceback.format_exc())
+            send({"type": "status", "message": f"Speaker identification disabled: {e}"})
     else:
-        diarizer = None
-        send({"type": "status", "message": "No HF token — diarization disabled."})
+        identifier = None
+        send({"type": "status", "message": "No HF token — speaker labels off."})
 
     _worker = threading.Thread(target=_worker_loop, daemon=True)
     _worker.start()
@@ -92,7 +93,14 @@ def _worker_loop() -> None:
         pcm, start_s = item
         try:
             segments = transcriber.transcribe(pcm)
-            diarization = diarizer.diarize(pcm) if diarizer else []
+            # One embedding-matched speaker per VAD chunk (see speaker_identifier).
+            # Synthesize a single-speaker "diarization" spanning the chunk so the
+            # aligner's stable name mapping still applies.
+            diarization = []
+            if identifier is not None:
+                idx = identifier.identify(pcm)
+                duration = len(pcm) / CONFIG["sample_rate"]
+                diarization = [(0.0, duration, f"spk{idx}")]
             for out in aligner.align(segments, diarization, offset_s=start_s):
                 send({"type": "segment", **out})
         except Exception as e:

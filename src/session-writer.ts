@@ -1,12 +1,12 @@
 import { App, normalizePath, TFolder } from 'obsidian';
 import type { SegmentMessage } from './stdio-protocol';
-import type { AudioSource } from './audio-recorder';
 
 export interface SessionWriterOptions {
 	app: App;
 	/** Vault-relative folder for transcripts, e.g. "Transcripts". */
 	outputFolder: string;
-	audioSource: AudioSource;
+	/** Free-form label for the transcript header (e.g. device name). */
+	audioSource: string;
 	/** Whisper model id (display is shortened to the last path segment). */
 	model: string;
 }
@@ -19,7 +19,7 @@ export interface SessionWriterOptions {
 export class SessionWriter {
 	private readonly app: App;
 	private readonly outputFolder: string;
-	private readonly audioSource: AudioSource;
+	private readonly audioSource: string;
 	private readonly model: string;
 
 	private filePath: string | null = null;

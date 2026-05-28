@@ -1,7 +1,9 @@
-export type AudioSource = 'microphone' | 'system';
-
 export interface AudioRecorderOptions {
-	source: AudioSource;
+	/**
+	 * Input device id from enumerateDevices(); '' / undefined = system default.
+	 * Pick a virtual device (e.g. BlackHole) here to capture system audio.
+	 */
+	deviceId?: string;
 	/** Target capture rate; backend is told the same value. Default 16000. */
 	sampleRate?: number;
 	/** Seconds of audio per emitted chunk. Default 8. */
@@ -16,14 +18,14 @@ const DEFAULT_CHUNK_SECONDS = 8;
 const SCRIPT_BUFFER_SIZE = 4096;
 
 /**
- * Captures mono audio via the Web Audio API, accumulates Float32 PCM, and
- * emits fixed-length Base64 chunks. Microphone uses getUserMedia; system
- * audio uses getDisplayMedia (needs BlackHole or similar on macOS — see
- * CLAUDE.md). ScriptProcessorNode keeps this dependency-free; it's deprecated
- * but reliable in Electron.
+ * Captures mono audio from a chosen input device via getUserMedia, accumulates
+ * Float32 PCM, and emits fixed-length Base64 chunks. System audio is captured
+ * by selecting a virtual input device (e.g. BlackHole) — getDisplayMedia audio
+ * is unreliable in Electron, so it isn't used. ScriptProcessorNode keeps this
+ * dependency-free; it's deprecated but reliable in Electron.
  */
 export class AudioRecorder {
-	private readonly source: AudioSource;
+	private readonly deviceId: string;
 	private readonly sampleRate: number;
 	private readonly chunkSeconds: number;
 	private readonly onChunk: (pcmB64: string, offsetS: number) => void;
@@ -41,7 +43,7 @@ export class AudioRecorder {
 	private running = false;
 
 	constructor(opts: AudioRecorderOptions) {
-		this.source = opts.source;
+		this.deviceId = (opts.deviceId ?? '').trim();
 		this.sampleRate = opts.sampleRate ?? DEFAULT_SAMPLE_RATE;
 		this.chunkSeconds = opts.chunkSeconds ?? DEFAULT_CHUNK_SECONDS;
 		this.onChunk = opts.onChunk;
@@ -108,24 +110,16 @@ export class AudioRecorder {
 	}
 
 	private async acquireStream(): Promise<MediaStream> {
-		const constraints: MediaStreamConstraints = {
-			audio: {
-				channelCount: 1,
-				echoCancellation: false,
-				noiseSuppression: false,
-				autoGainControl: false,
-			},
-			video: false,
+		const audio: MediaTrackConstraints = {
+			channelCount: 1,
+			echoCancellation: false,
+			noiseSuppression: false,
+			autoGainControl: false,
 		};
-		if (this.source === 'system') {
-			// getDisplayMedia requires a video track in most implementations;
-			// we capture it but only read the audio track.
-			return navigator.mediaDevices.getDisplayMedia({
-				audio: true,
-				video: true,
-			});
+		if (this.deviceId) {
+			audio.deviceId = { exact: this.deviceId };
 		}
-		return navigator.mediaDevices.getUserMedia(constraints);
+		return navigator.mediaDevices.getUserMedia({ audio, video: false });
 	}
 
 	private onAudio(e: AudioProcessingEvent): void {
