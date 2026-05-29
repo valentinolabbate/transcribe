@@ -11,6 +11,8 @@ export interface ConfigMessage {
 	hf_token: string;
 	sample_rate: number;
 	language: string;
+	/** Cosine-similarity threshold for matching speakers (higher = stricter). */
+	speaker_threshold: number;
 }
 
 export interface ChunkMessage {

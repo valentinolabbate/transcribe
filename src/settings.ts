@@ -10,6 +10,7 @@ export interface TranscriberSettings {
 	inputDeviceId: string; // '' = system default input
 	inputDeviceLabel: string; // human-readable label, for the transcript header
 	chunkSeconds: number;
+	speakerThreshold: number; // cosine-sim threshold for speaker matching
 }
 
 export const DEFAULT_SETTINGS: TranscriberSettings = {
@@ -21,6 +22,7 @@ export const DEFAULT_SETTINGS: TranscriberSettings = {
 	inputDeviceId: '',
 	inputDeviceLabel: '',
 	chunkSeconds: 8,
+	speakerThreshold: 0.7,
 };
 
 const PYANNOTE_EMBED_URL = 'https://huggingface.co/pyannote/embedding';
@@ -113,6 +115,24 @@ export class LiveTranscriberSettingTab extends PluginSettingTab {
 				// Mask the token like a password field.
 				t.inputEl.type = 'password';
 			});
+
+		new Setting(containerEl)
+			.setName('Speaker sensitivity')
+			.setDesc(
+				'How distinct two voices must be to count as different speakers. ' +
+					'Higher = stricter (separates similar voices, but may split one ' +
+					'speaker); lower = merges more. Takes effect on the next recording.',
+			)
+			.addSlider((sl) =>
+				sl
+					.setLimits(0.3, 0.9, 0.05)
+					.setValue(s.speakerThreshold)
+					.setDynamicTooltip()
+					.onChange(async (v) => {
+						s.speakerThreshold = v;
+						await this.plugin.saveSettings();
+					}),
+			);
 
 		new Setting(containerEl).setName('Audio & output').setHeading();
 

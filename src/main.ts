@@ -332,6 +332,7 @@ export default class LiveTranscriberPlugin extends Plugin {
 					hf_token: this.settings.hfToken,
 					sample_rate: SAMPLE_RATE,
 					language: this.settings.language,
+					speaker_threshold: this.settings.speakerThreshold,
 				});
 			} catch (e) {
 				prep.hide();

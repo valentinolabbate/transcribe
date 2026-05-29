@@ -52,6 +52,7 @@ def handle_config(msg: dict) -> None:
     model = msg.get("model") or "mlx-community/whisper-large-v3-turbo"
     language = msg.get("language") or None
     hf_token = msg.get("hf_token") or ""
+    speaker_threshold = float(msg.get("speaker_threshold", 0.7))
     CONFIG["sample_rate"] = sample_rate
 
     send({"type": "status", "message": "Loading voice-activity detector..."})
@@ -69,8 +70,13 @@ def handle_config(msg: dict) -> None:
         send({"type": "status", "message": "Loading speaker identification..."})
         try:
             from speaker_identifier import SpeakerIdentifier
-            identifier = SpeakerIdentifier(hf_token, sample_rate)
-            send({"type": "status", "message": "Speaker identification: ON"})
+            identifier = SpeakerIdentifier(
+                hf_token, sample_rate, similarity_threshold=speaker_threshold
+            )
+            send({
+                "type": "status",
+                "message": f"Speaker identification: ON (threshold {speaker_threshold:.2f})",
+            })
         except Exception as e:
             identifier = None
             log("speaker identification load failed:", traceback.format_exc())
