@@ -27,8 +27,8 @@ virtual environment lives next to it in `venv/`.
 - macOS, Apple Silicon
 - **Python 3.10+** installed and on your PATH (or set the path in settings)
 - A **HuggingFace token** with accepted terms for
-  [pyannote/embedding](https://huggingface.co/pyannote/embedding) — required only
-  for speaker labels
+  [pyannote/wespeaker-voxceleb-resnet34-LM](https://huggingface.co/pyannote/wespeaker-voxceleb-resnet34-LM)
+  — required only for speaker labels
 - For **system audio** capture: a virtual audio device such as
   [BlackHole](https://github.com/ExistentialAudio/BlackHole)
 

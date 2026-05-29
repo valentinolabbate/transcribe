@@ -7,11 +7,15 @@ speech chunk and match it against a growing set of global speaker centroids
 (cosine similarity). New voices spawn a new speaker; known voices keep their id.
 This yields speaker identities that stay consistent for the whole session.
 
-Requires a HuggingFace token whose account has accepted the terms for
-huggingface.co/pyannote/embedding.
+Uses the WeSpeaker ResNet34 embedding (the same one pyannote's
+speaker-diarization-3.1 pipeline relies on) for strong discrimination, including
+between same-gender voices. Requires a HuggingFace token whose account has
+accepted the terms for huggingface.co/pyannote/wespeaker-voxceleb-resnet34-LM.
 """
 
 import numpy as np
+
+EMBEDDING_MODEL = "pyannote/wespeaker-voxceleb-resnet34-LM"
 
 
 class SpeakerIdentifier:
@@ -32,11 +36,11 @@ class SpeakerIdentifier:
         from pyannote.audio import Model, Inference
 
         self._torch = torch
-        model = Model.from_pretrained("pyannote/embedding", use_auth_token=hf_token)
+        model = Model.from_pretrained(EMBEDDING_MODEL, use_auth_token=hf_token)
         if model is None:
             raise RuntimeError(
-                "pyannote/embedding failed to load — accept its terms at "
-                "huggingface.co/pyannote/embedding and check the token"
+                f"{EMBEDDING_MODEL} failed to load — accept its terms at "
+                f"huggingface.co/{EMBEDDING_MODEL} and check the token"
             )
         if torch.backends.mps.is_available():
             try:

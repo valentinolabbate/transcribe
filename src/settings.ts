@@ -25,7 +25,8 @@ export const DEFAULT_SETTINGS: TranscriberSettings = {
 	speakerThreshold: 0.7,
 };
 
-const PYANNOTE_EMBED_URL = 'https://huggingface.co/pyannote/embedding';
+const PYANNOTE_EMBED_URL =
+	'https://huggingface.co/pyannote/wespeaker-voxceleb-resnet34-LM';
 
 async function listAudioInputs(): Promise<MediaDeviceInfo[]> {
 	const devices = await navigator.mediaDevices.enumerateDevices();
@@ -97,7 +98,7 @@ export class LiveTranscriberSettingTab extends PluginSettingTab {
 						'Required for speaker labels. Accept the model terms at ',
 					);
 					frag.createEl('a', {
-						text: 'pyannote/embedding',
+						text: 'pyannote/wespeaker-voxceleb-resnet34-LM',
 						href: PYANNOTE_EMBED_URL,
 					});
 					frag.appendText(
