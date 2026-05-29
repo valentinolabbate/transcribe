@@ -181,16 +181,54 @@ export default class LiveTranscriberPlugin extends Plugin {
 	}
 
 	private async stopRecording(): Promise<void> {
-		await this.recorder?.stop();
+		await this.recorder?.stop(); // flushes the final audio chunk to the backend
 		this.recorder = null;
 		this.setStatus('idle');
-		// Flush the VAD's trailing speech but keep the backend resident so the
-		// next recording doesn't reload the Whisper model.
-		this.protocol?.sendFlush();
-		// Let any in-flight appends settle, then close the session. Late
-		// segments from the flush still land via the segment handler.
+
+		const finishing = new Notice(
+			'Live Transcriber: finishing transcription…',
+			0,
+		);
+		// Shut the backend down so its models are unloaded and RAM/MPS memory is
+		// freed. The backend first flushes the VAD's trailing speech and drains
+		// its queue (emitting the last segments) before exiting.
+		await this.shutdownBackend();
+		// Wait for the trailing segments to be written, then close the session.
 		await this.session?.flush();
-		new Notice('Live Transcriber: recording stopped');
+		this.session = null;
+		finishing.hide();
+		new Notice('Live Transcriber: stopped — models unloaded');
+	}
+
+	/**
+	 * Gracefully stop the backend: send `stop`, wait for it to drain and exit
+	 * (so trailing segments arrive), then force-kill if it overruns. Exiting the
+	 * process is what actually frees the model memory.
+	 */
+	private async shutdownBackend(timeoutMs = 120000): Promise<void> {
+		const protocol = this.protocol;
+		if (!protocol) return;
+
+		const closed = new Promise<void>((resolve) =>
+			protocol.once('close', () => resolve()),
+		);
+		try {
+			protocol.sendStop();
+		} catch {
+			// stdin already gone — fall through to the kill path.
+		}
+
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const timedOut = new Promise<void>((resolve) => {
+			timer = setTimeout(() => {
+				console.warn('Live Transcriber: backend stop timed out, killing');
+				this.python?.kill();
+				resolve();
+			}, timeoutMs);
+		});
+
+		await Promise.race([closed, timedOut]);
+		if (timer) clearTimeout(timer);
 	}
 
 	/** Run `pip install -r requirements.txt` into the venv. */

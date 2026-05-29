@@ -118,15 +118,17 @@ def handle_chunk(msg: dict) -> None:
         _work_q.put((chunk, start_s))
 
 
-def handle_flush() -> None:
-    """Emit trailing speech but keep the backend (and models) resident."""
+def _flush_vad() -> None:
+    """Push the VAD's trailing speech into the work queue."""
     if vad is not None:
         for chunk, start_s in vad.flush():
             _work_q.put((chunk, start_s))
 
 
 def handle_stop() -> None:
-    handle_flush()
+    # Flush trailing speech, let the worker drain the queue, then exit so the
+    # process dies and all model memory is released.
+    _flush_vad()
     _work_q.put(None)
     if _worker is not None:
         _worker.join(timeout=120)
@@ -145,8 +147,6 @@ def main() -> None:
                 handle_config(msg)
             elif msg_type == "chunk":
                 handle_chunk(msg)
-            elif msg_type == "flush":
-                handle_flush()
             elif msg_type == "stop":
                 handle_stop()
                 break

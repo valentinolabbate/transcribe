@@ -23,16 +23,7 @@ export interface StopMessage {
 	type: 'stop';
 }
 
-/** Flush the VAD buffer and emit trailing speech without shutting down. */
-export interface FlushMessage {
-	type: 'flush';
-}
-
-export type OutgoingMessage =
-	| ConfigMessage
-	| ChunkMessage
-	| FlushMessage
-	| StopMessage;
+export type OutgoingMessage = ConfigMessage | ChunkMessage | StopMessage;
 
 /** Python -> Plugin */
 export interface ReadyMessage {
@@ -139,10 +130,6 @@ export class StdioProtocol extends EventEmitter {
 
 	sendChunk(pcmB64: string, offsetS: number): void {
 		this.send({ type: 'chunk', pcm_b64: pcmB64, offset_s: offsetS });
-	}
-
-	sendFlush(): void {
-		this.send({ type: 'flush' });
 	}
 
 	sendStop(): void {
